@@ -1,127 +1,164 @@
-import { ChevronRight, Plus, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
-import { useNavigate } from 'react-router-dom'
-import 'leaflet/dist/leaflet.css'
-import { PlaceBadges, PlaceImage } from '../components/ui'
-import { AARHUS } from '../data/seed'
+import { Bookmark, ChevronRight, Gem, Plus, Search, UsersRound, X, type LucideIcon } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Marker, type MapRef } from 'react-map-gl/maplibre'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { categoryStyle } from '../components/category'
+import { Pin, PlaceMap } from '../components/PlaceMap'
+import { Chip, PlaceImage, Pill } from '../components/ui'
+import { interests, userById } from '../data/seed'
 import { useVisiblePlaces } from '../services/recommendationService'
 import { savedStore } from '../services/store'
 import type { Place } from '../types'
+import { usePageTitle } from '../components/usePageTitle'
 
-const RUST = '#9d5638'
-const MOSS = '#4f6b5a'
+type Filter = { id: string; label: string; icon?: LucideIcon; test: (p: Place, saved: string[]) => boolean }
 
-const filters: { id: string; label: string; test: (p: Place, saved: string[]) => boolean }[] = [
+const filters: Filter[] = [
   { id: 'all', label: 'All', test: () => true },
-  { id: 'hidden', label: 'Hidden gems', test: p => p.hidden },
-  { id: 'community', label: 'Shared by people', test: p => !!p.addedBy },
-  { id: 'saved', label: 'Saved', test: (p, saved) => saved.includes(p.id) },
-  { id: 'indoor', label: 'Indoors', test: p => p.indoor },
-  { id: 'outdoor', label: 'Outdoors', test: p => !p.indoor },
+  { id: 'hidden', label: 'Hidden gems', icon: Gem, test: p => p.hidden },
+  { id: 'community', label: 'Shared by people', icon: UsersRound, test: p => !!p.addedBy },
+  { id: 'saved', label: 'Saved', icon: Bookmark, test: (p, saved) => saved.includes(p.id) },
+  ...interests.map(i => ({ id: i.id, label: i.label, icon: categoryStyle[i.id].icon, test: (p: Place) => p.interests.includes(i.id) })),
 ]
 
-function FitPlaces({ places }: { places: Place[] }) {
-  const map = useMap()
-  useEffect(() => {
-    if (places.length === 1) map.setView([places[0].lat, places[0].lng], 14, { animate: true })
-    else if (places.length > 1) map.fitBounds(places.map(p => [p.lat, p.lng]), { padding: [40, 40], maxZoom: 14, animate: true })
-  }, [map, places])
-  return null
-}
-
-function ClearOnMapClick({ onClear }: { onClear: () => void }) {
-  useMapEvents({ click: onClear })
-  return null
-}
+const CARD = 296
+const GAP = 12
+const mapPadding = { top: 220, bottom: 250, left: 40, right: 40 }
 
 export function MapPage() {
+  usePageTitle('Map')
   const nav = useNavigate()
   const places = useVisiblePlaces()
   const saved = savedStore.use()
-  const [filterId, setFilterId] = useState('all')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const mapRef = useRef<MapRef>(null)
+  const railRef = useRef<HTMLDivElement>(null)
+  const [loaded, setLoaded] = useState(false)
+  const [params] = useSearchParams()
+  const [filterId, setFilterId] = useState(() => filters.some(f => f.id === params.get('filter')) ? params.get('filter')! : 'all')
+  const [query, setQuery] = useState('')
+  const [index, setIndex] = useState(0)
 
   const filter = filters.find(f => f.id === filterId)!
-  const shown = useMemo(() => places.filter(p => filter.test(p, saved)), [places, filter, saved])
-  const selected = shown.find(p => p.id === selectedId)
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return places.filter(p => filter.test(p, saved) && (!q || `${p.name} ${p.category} ${p.area}`.toLowerCase().includes(q)))
+  }, [places, filter, saved, query])
+  const selected = shown[index] ?? shown[0]
+
+  const fitAll = useCallback((list: Place[]) => {
+    const map = mapRef.current
+    if (!map || list.length === 0) return
+    if (list.length === 1) return void map.easeTo({ center: [list[0].lng, list[0].lat], zoom: 14, padding: mapPadding })
+    const lngs = list.map(p => p.lng)
+    const lats = list.map(p => p.lat)
+    map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: mapPadding, maxZoom: 14, duration: 600 })
+  }, [])
+
+  useEffect(() => {
+    setIndex(0)
+    railRef.current?.scrollTo({ left: 0 })
+    if (loaded) fitAll(shown)
+  }, [loaded, shown, fitAll])
+
+  function onRailScroll() {
+    const rail = railRef.current
+    if (!rail) return
+    const next = Math.max(0, Math.min(shown.length - 1, Math.round(rail.scrollLeft / (CARD + GAP))))
+    if (next === index) return
+    setIndex(next)
+    const p = shown[next]
+    const map = mapRef.current
+    if (p && map) map.easeTo({ center: [p.lng, p.lat], zoom: Math.max(map.getZoom(), 13.5), padding: mapPadding, duration: 450 })
+  }
+
+  function focusPin(i: number) {
+    railRef.current?.scrollTo({ left: i * (CARD + GAP), behavior: 'smooth' })
+  }
 
   return (
-    <div className="relative -mx-5 -mb-28 h-[calc(100dvh-68px)] overflow-hidden bg-sage">
-      <MapContainer center={AARHUS} zoom={13} scrollWheelZoom zoomControl={false} className="h-full w-full">
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <FitPlaces places={shown} />
-        <ClearOnMapClick onClear={() => setSelectedId(null)} />
-        {shown.map(p => {
-          const isSelected = p.id === selectedId
+    <div className="relative -mx-5 -mb-32 h-[100dvh] overflow-hidden bg-[#f1ebe0]">
+      <PlaceMap ref={mapRef} onLoad={() => setLoaded(true)}>
+        {shown.map((p, i) => {
+          const isSelected = p.id === selected?.id
           return (
-            <CircleMarker
+            <Marker
               key={p.id}
-              center={[p.lat, p.lng]}
-              radius={isSelected ? 13 : 9}
-              bubblingMouseEvents={false}
-              pathOptions={{ color: isSelected ? '#292722' : '#fff', weight: 3, fillColor: p.addedBy ? MOSS : RUST, fillOpacity: 1 }}
-              eventHandlers={{ click: () => setSelectedId(p.id) }}
-            />
+              latitude={p.lat}
+              longitude={p.lng}
+              anchor={isSelected && p.image ? 'bottom' : 'center'}
+              style={{ zIndex: isSelected ? 3 : p.addedBy ? 2 : 1 }}
+              onClick={e => { e.originalEvent.stopPropagation(); focusPin(i) }}
+            >
+              <span role="button" aria-label={p.name}><Pin place={p} selected={isSelected} /></span>
+            </Marker>
           )
         })}
-      </MapContainer>
+      </PlaceMap>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] bg-gradient-to-b from-paper/90 to-transparent px-4 pb-6 pt-5">
-        <div className="pointer-events-auto flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-light">Map</h1>
-          <button onClick={() => nav('/add-place')} className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2.5 text-sm text-white shadow-lg">
-            <Plus size={16} /> Add a place
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] bg-gradient-to-b from-paper/85 via-paper/40 to-transparent px-4 pb-8 pt-12">
+        <div className="pointer-events-auto flex items-center gap-2">
+          <label className="card-shadow flex flex-1 items-center gap-2 rounded-full bg-card px-4 py-3">
+            <Search size={18} className="shrink-0 text-muted" />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search places"
+              aria-label="Search places"
+              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-faint"
+            />
+            {query && <button onClick={() => setQuery('')} aria-label="Clear search" className="text-faint"><X size={16} /></button>}
+          </label>
+          <button onClick={() => nav('/add-place')} className="flex shrink-0 items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-white float-shadow">
+            <Plus size={17} /> Add
           </button>
         </div>
-        <div role="radiogroup" aria-label="Filter places" className="pointer-events-auto -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+        <div className="no-scrollbar pointer-events-auto -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
           {filters.map(f => (
-            <button
-              key={f.id}
-              role="radio"
-              aria-checked={filterId === f.id}
-              onClick={() => { setFilterId(f.id); setSelectedId(null) }}
-              className={`shrink-0 rounded-full border px-3.5 py-2 text-sm shadow-sm transition ${filterId === f.id ? 'border-ink bg-ink text-white' : 'border-line bg-card'}`}
-            >
-              {f.label}
-            </button>
+            <Chip key={f.id} selected={filterId === f.id} onClick={() => setFilterId(f.id)}>
+              {f.icon && <f.icon size={14} />} {f.label}
+            </Chip>
           ))}
         </div>
       </div>
 
-      {shown.length === 0 && (
-        <div className="absolute inset-x-6 top-40 z-[500] rounded-2xl bg-card p-4 text-center text-sm text-muted shadow-lg">
-          {filterId === 'saved' ? 'You haven’t saved any places yet. Tap the bookmark on a place to save it.' : 'No places match this filter yet.'}
-        </div>
-      )}
-
-      {selected ? (
-        <div className="absolute inset-x-3 bottom-[84px] z-[600] float-in">
-          <div className="relative flex gap-3 rounded-[22px] bg-card p-3 shadow-xl">
-            <PlaceImage place={selected} className="h-24 w-24 shrink-0 rounded-2xl" />
-            <div className="min-w-0 flex-1 py-0.5 pr-6">
-              <p className="truncate text-lg font-medium leading-tight">{selected.name}</p>
-              <p className="mt-0.5 truncate text-xs text-muted">{selected.category} · {selected.area}</p>
-              <div className="mt-1.5"><PlaceBadges place={selected} /></div>
-              <button onClick={() => nav(`/place/${selected.id}`)} className="mt-2 flex items-center gap-0.5 text-sm font-medium text-rust">
-                View place <ChevronRight size={16} />
-              </button>
-            </div>
-            <button onClick={() => setSelectedId(null)} aria-label="Close preview" className="absolute right-2 top-2 rounded-full p-1.5 text-faint hover:bg-black/5 hover:text-ink">
-              <X size={16} />
-            </button>
+      <div className="absolute inset-x-0 bottom-[96px] z-[600]">
+        {shown.length === 0 ? (
+          <div className="card-shadow mx-4 rounded-md bg-card p-5 text-center text-sm text-muted">
+            {filterId === 'saved' && !query ? 'No saved places yet. Tap the bookmark on any place to save it.' : 'No places match. Try another filter or search.'}
           </div>
-        </div>
-      ) : (
-        <div className="absolute bottom-[84px] left-3 z-[500] flex gap-3 rounded-full bg-card/95 px-3.5 py-2 text-xs text-muted shadow-md">
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: RUST }} /> Curated</span>
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: MOSS }} /> Shared by people</span>
-          <span className="text-faint">· {shown.length} places</span>
-        </div>
-      )}
+        ) : (
+          <div
+            ref={railRef}
+            onScroll={onRailScroll}
+            className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto px-4 pb-2"
+            style={{ gap: GAP, scrollPaddingLeft: 16 }}
+          >
+            {shown.map((p, i) => (
+              <button
+                key={p.id}
+                onClick={() => (i === index ? nav(`/place/${p.id}`) : focusPin(i))}
+                style={{ width: CARD }}
+                className={`card-shadow flex shrink-0 snap-start gap-4 rounded-md bg-card p-2 text-left ${i === index ? '' : 'opacity-80'}`}
+              >
+                <PlaceImage place={p} className="h-24 w-24 shrink-0 rounded-sm" />
+                <span className="flex min-w-0 flex-1 flex-col justify-between py-1 pr-2">
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold leading-6">{p.name}</span>
+                    <span className="mt-1 block truncate text-xs text-muted">{p.category} · {p.area}</span>
+                  </span>
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 overflow-hidden">
+                      {p.hidden ? <Pill tone="gem"><Gem size={12} /> Hidden gem</Pill> : p.addedBy ? <Pill>Shared by {p.addedBy === 'me' ? 'you' : userById(p.addedBy)?.name}</Pill> : <Pill>{p.indoor ? 'Indoors' : 'Outdoors'}</Pill>}
+                    </span>
+                    <span className="flex shrink-0 items-center text-xs font-semibold text-accent-ink">View <ChevronRight size={14} /></span>
+                  </span>
+                </span>
+              </button>
+            ))}
+            <span aria-hidden style={{ flex: `0 0 calc(100% - ${CARD + GAP + 16}px)` }} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

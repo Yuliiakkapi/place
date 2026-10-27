@@ -44,10 +44,11 @@ export const categoryOptions: { label: string; interest: Interest }[] = [
 export const vibeLabel = (id: Vibe) => vibes.find(v => v.id === id)?.label ?? id
 export const interestLabel = (id: Interest) => interests.find(i => i.id === id)?.label ?? id
 const companyShort: Record<Company, string> = { alone: 'alone', friend: 'with a friend', group: 'in a group' }
-export const goodFor = (company: Company[]) => {
+export const companyList = (company: Company[]) => {
   const parts = company.map(c => companyShort[c])
-  return `Good ${parts.length > 1 ? `${parts.slice(0, -1).join(', ')} or ${parts.at(-1)}` : parts[0]}`
+  return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} or ${parts.at(-1)}` : parts[0]
 }
+export const goodFor = (company: Company[]) => `Good ${companyList(company)}`
 
 export const photoCredit = (id: string) => (photoCredits as Record<string, { author: string; license: string; source: string }>)[id]
 

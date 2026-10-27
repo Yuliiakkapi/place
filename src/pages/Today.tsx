@@ -1,11 +1,15 @@
-import { ArrowRight, ChevronRight, Plus } from 'lucide-react'
+import { ArrowRight, ChevronRight, Coffee, Compass, Leaf, Moon, Plus, Users, Wind, type LucideIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { OptionButton, PlaceBadges, PlaceImage, PlaceRow, SectionTitle, TextLink } from '../components/ui'
-import { vibeLabel, vibes } from '../data/seed'
+import { AutumnLeaves } from '../components/AutumnLeaves'
+import { Avatar, AvatarStack, OptionButton, PhotoCard, Pill, PlaceImage, SectionTitle, SeeAll, Sheet } from '../components/ui'
+import { users, vibeLabel, vibes } from '../data/seed'
 import { recommend, useVisiblePlaces } from '../services/recommendationService'
 import { moodStore, profileStore, savedStore, todayKey } from '../services/store'
 import type { Vibe } from '../types'
+import { usePageTitle } from '../components/usePageTitle'
+
+const vibeIcons: Record<Vibe, LucideIcon> = { calm: Moon, outdoors: Wind, company: Users, new: Compass, cozy: Coffee }
 
 function greeting() {
   const h = new Date().getHours()
@@ -13,92 +17,136 @@ function greeting() {
 }
 
 export function Today() {
+  usePageTitle('Explore')
   const nav = useNavigate()
   const profile = profileStore.use()
   const storedMood = moodStore.use()
   const saved = savedStore.use()
   const places = useVisiblePlaces()
   const vibe = storedMood?.date === todayKey() ? storedMood.vibe : null
-  const [picking, setPicking] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const VibeIcon = vibe ? vibeIcons[vibe] : Leaf
 
   const picks = useMemo(() => recommend(places, profile, vibe, saved), [places, profile, vibe, saved])
   const [top, ...rest] = picks
+  const friendShares = places.filter(p => p.addedBy && users.find(u => u.id === p.addedBy)?.isFriend)
+  const friendNames = [...new Set(friendShares.map(p => users.find(u => u.id === p.addedBy)!.name))]
 
   function chooseVibe(id: Vibe) {
-    if (id === vibe) moodStore.set(null)
-    else moodStore.set({ vibe: id, date: todayKey() })
-    setPicking(false)
+    moodStore.set(id === vibe ? null : { vibe: id, date: todayKey() })
+    setSheetOpen(false)
   }
 
-  const showPicker = picking || !vibe
-
   return (
-    <div className="pt-9 pb-4">
-      <header>
-        <p className="text-sm text-muted">{greeting()}{profile?.name ? `, ${profile.name}` : ''}</p>
-        <h1 className="mt-1 text-3xl font-light tracking-[-.02em]">Where to today?</h1>
+    <div className="pb-4">
+      <header className="relative -mx-5 overflow-hidden bg-gradient-to-b from-[#f6e1d0] via-[#f5eadf] to-paper px-5 pb-4 pt-12">
+        <AutumnLeaves count={6} />
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm text-muted">{greeting()}{profile?.name ? `, ${profile.name}` : ''}</p>
+            <h1 className="display mt-1 text-3xl">Where to today?</h1>
+          </div>
+          <button onClick={() => nav('/profile')} aria-label="Your profile" className="rounded-full">
+            <Avatar name={profile?.name || 'You'} size={44} ring />
+          </button>
+        </div>
+
+        <button
+          onClick={() => setSheetOpen(true)}
+          className="card-shadow relative mt-6 flex w-full items-center gap-3 rounded-full bg-card p-2 pr-3 text-left active:scale-[.98]"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-peach text-accent-ink">
+            <VibeIcon size={18} />
+          </span>
+          <span className="min-w-0 flex-1">
+            {vibe ? (
+              <>
+                <span className="block text-xs text-muted">Today’s vibe</span>
+                <span className="block truncate text-base font-semibold">{vibeLabel(vibe)}</span>
+              </>
+            ) : (
+              <span className="block text-base text-muted">What’s your vibe today?</span>
+            )}
+          </span>
+          <span className="rounded-full bg-black/[.05] px-3 py-2 text-xs font-medium">{vibe ? 'Change' : 'Choose'}</span>
+        </button>
       </header>
 
-      <section aria-labelledby="mood-title" className="mt-7">
-        {showPicker ? (
-          <>
-            <div className="flex items-baseline justify-between">
-              <h2 id="mood-title" className="font-medium">What are you in the mood for?</h2>
-              {picking && <TextLink onClick={() => setPicking(false)}>Cancel</TextLink>}
-            </div>
-            <p className="mt-1 text-sm text-muted">Pick one. You can change it anytime.</p>
-            <div className="mt-4 space-y-2">
-              {vibes.map(v => <OptionButton key={v.id} label={v.label} hint={v.hint} selected={vibe === v.id} onClick={() => chooseVibe(v.id)} />)}
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center justify-between border-y border-line py-3.5">
-            <p id="mood-title" className="text-sm text-muted">
-              Today you’re in the mood for <span className="font-medium text-ink">{vibeLabel(vibe!).toLowerCase()}</span>
-            </p>
-            <TextLink onClick={() => setPicking(true)}>Change</TextLink>
-          </div>
-        )}
-      </section>
-
       {top && (
-        <section className="mt-8">
-          <SectionTitle>Picked for you</SectionTitle>
+        <section className="mt-5">
           <button
             onClick={() => nav(`/place/${top.place.id}`)}
-            className="mt-3 w-full overflow-hidden rounded-[24px] border border-line bg-card text-left shadow-[0_10px_30px_rgba(55,44,32,.08)] transition hover:border-ink/30 active:scale-[.99]"
+            className="card-shadow w-full rounded-lg bg-card p-5 text-left active:scale-[.98]"
           >
-            <PlaceImage place={top.place} className="h-48 w-full" />
-            <div className="p-5">
-              <PlaceBadges place={top.place} />
-              <h3 className="mt-2 text-2xl font-light">{top.place.name}</h3>
-              <p className="mt-1 text-sm leading-6 text-muted">{top.place.summary}</p>
-              <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
-                <p className="text-xs text-faint">{top.reasons.join(' · ') || top.place.category}</p>
-                <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-rust">View <ChevronRight size={16} /></span>
+            <div className="flex gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium uppercase tracking-[.12em] text-faint">Picked for you</p>
+                <h2 className="display mt-2 text-2xl">{top.place.name}</h2>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Pill tone="dark">{top.place.category}</Pill>
+                  {top.place.hidden && <Pill tone="gem">Hidden gem</Pill>}
+                </div>
               </div>
+              <PlaceImage place={top.place} className="h-[120px] w-[104px] shrink-0 rotate-3 rounded-md border-4 border-card float-shadow" />
+            </div>
+            <p className="mt-4 text-sm leading-6 text-muted">{top.place.summary}</p>
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <p className="min-w-0 truncate text-xs text-muted">
+                <span className="font-semibold text-ink">Why: </span>{top.reasons.join(' · ') || top.place.area}
+              </p>
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white">View <ArrowRight size={15} /></span>
             </div>
           </button>
         </section>
       )}
 
-      <section className="mt-9">
-        <SectionTitle action={<TextLink onClick={() => nav('/map')}>See all on map</TextLink>}>Also worth a visit</SectionTitle>
-        <div className="mt-3 space-y-2">
-          {rest.slice(0, 3).map(r => (
-            <PlaceRow key={r.place.id} place={r.place} detail={r.reasons[0] ? `${r.place.category} · ${r.reasons[0]}` : undefined} onClick={() => nav(`/place/${r.place.id}`)} />
+      <section className="mt-8">
+        <SectionTitle action={<SeeAll onClick={() => nav('/map')}>Map</SeeAll>}>More for you</SectionTitle>
+        <div className="no-scrollbar -mx-5 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-2">
+          {rest.slice(0, 6).map(r => (
+            <PhotoCard
+              key={r.place.id}
+              place={r.place}
+              tags={[r.place.hidden ? 'Hidden gem' : r.place.indoor ? 'Indoors' : 'Outdoors']}
+              onClick={() => nav(`/place/${r.place.id}`)}
+            />
           ))}
         </div>
       </section>
 
-      <section className="mt-9 rounded-[24px] bg-sand p-5">
-        <h2 className="font-medium">Know a spot most people miss?</h2>
-        <p className="mt-1 text-sm leading-6 text-muted">Add it to the map. You choose whether everyone or only friends can see it.</p>
-        <button onClick={() => nav('/add-place')} className="mt-4 flex w-full items-center justify-between rounded-full bg-ink px-5 py-3.5 text-sm text-white">
-          <span className="flex items-center gap-2"><Plus size={17} /> Share a place</span>
-          <ArrowRight size={17} />
+      {friendShares.length > 0 && (
+        <section className="mt-7">
+          <SectionTitle>Your people shared</SectionTitle>
+          <button onClick={() => nav('/people')} className="card-shadow mt-3 flex w-full items-center gap-3 rounded-md bg-card p-4 text-left">
+            <AvatarStack names={friendNames} size={36} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold">{friendNames.join(', ')}</span>
+              <span className="block text-xs text-muted">{friendShares.length} {friendShares.length === 1 ? 'place' : 'places'} for friends</span>
+            </span>
+            <span className="relative mr-1 h-12 w-16 shrink-0">
+              {friendShares.slice(0, 2).map((p, i) => (
+                <PlaceImage key={p.id} place={p} className={`absolute top-0 h-12 w-12 rounded-sm border-2 border-white card-shadow ${i ? 'right-0 rotate-6' : 'left-0 -rotate-6'}`} />
+              ))}
+            </span>
+            <ChevronRight size={18} className="shrink-0 text-faint" />
+          </button>
+        </section>
+      )}
+
+      <section className="mt-7 overflow-hidden rounded-lg bg-peach p-5">
+        <h2 className="display text-2xl">Know a hidden gem?</h2>
+        <p className="mt-2 text-sm leading-6 text-muted">Put it on the map. You choose if everyone or only friends can see it.</p>
+        <button onClick={() => nav('/add-place')} className="mt-4 flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-card">
+          <Plus size={17} /> Share a place
         </button>
       </section>
+
+      <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="What’s your vibe today?">
+        <p className="-mt-2 mb-4 text-sm text-muted">Pick one. You can change it anytime, and tapping it again clears it.</p>
+        <div className="space-y-2">
+          {vibes.map(v => <OptionButton key={v.id} label={v.label} hint={v.hint} selected={vibe === v.id} onClick={() => chooseVibe(v.id)} />)}
+        </div>
+      </Sheet>
     </div>
   )
 }
