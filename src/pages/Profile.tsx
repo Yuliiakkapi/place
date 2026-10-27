@@ -1,11 +1,11 @@
-import { Bookmark, Globe, Lock, MapPinPlus, MessageSquareText, Plus, Settings } from 'lucide-react'
+import { Bookmark, Globe, Leaf, Lock, MapPinPlus, MessageSquareText, Plus, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { AutumnLeaves } from '../components/AutumnLeaves'
-import { Avatar, EmptyNote, PlaceImage, PlaceRow, SectionTitle, SeeAll } from '../components/ui'
+import { Avatar, EmptyNote, Pill, PlaceImage, PlaceRow, SectionTitle, SeeAll } from '../components/ui'
 import { interestLabel } from '../data/seed'
 import { useVisiblePlaces } from '../services/recommendationService'
-import { contributionsStore, profileStore, savedStore, tipsStore } from '../services/store'
+import { contributionsStore, profileStore, savedStore, secretStore, tipsStore } from '../services/store'
 import { usePageTitle } from '../components/usePageTitle'
+import { AutumnLeaves } from '../components/AutumnLeaves'
 
 export function Profile() {
   usePageTitle('Profile')
@@ -14,6 +14,7 @@ export function Profile() {
   const saved = savedStore.use()
   const mine = contributionsStore.use()
   const tips = tipsStore.use()
+  const leafSeeker = secretStore.use()
   const places = useVisiblePlaces()
   const savedPlaces = saved.map(id => places.find(p => p.id === id)).filter(p => !!p)
   const addedNames = new Set(mine.map(p => p.name.toLowerCase()))
@@ -28,10 +29,10 @@ export function Profile() {
 
   return (
     <div className="pb-4">
-      <header className="relative -mx-5 overflow-hidden bg-gradient-to-b from-[#efe4d1] via-[#f3ebdf] to-paper px-5 pb-2 pt-12">
-        <AutumnLeaves count={6} />
+      <header className="relative -mx-5 overflow-hidden bg-gradient-to-b from-card via-[#fdfbf7] to-paper px-5 pb-2 pt-12">
+        <AutumnLeaves count={7} pace={0.55} />
         <div className="relative flex justify-end">
-          <button onClick={() => nav('/settings')} className="card-shadow flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm font-medium">
+          <button onClick={() => nav('/settings')} className="glass flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium">
             <Settings size={16} /> Settings
           </button>
         </div>
@@ -39,7 +40,12 @@ export function Profile() {
           <Avatar name={name} size={84} ring />
           <h1 className="display mt-3 text-3xl leading-tight">{name}</h1>
           <p className="mt-1 text-sm text-muted">Aarhus · {profile.interests.map(interestLabel).join(', ')}</p>
-          <button onClick={() => nav('/onboarding?edit=1')} className="mt-3 rounded-full bg-card px-4 py-2 text-xs font-semibold">Edit preferences</button>
+          {leafSeeker && (
+            <button onClick={() => nav('/place/golden-hour-bench')} className="mt-3" aria-label="Leaf seeker badge: open your secret spot">
+              <Pill tone="honey"><Leaf size={12} /> Leaf seeker</Pill>
+            </button>
+          )}
+          <button onClick={() => nav('/onboarding?edit=1')} className="glass mt-3 rounded-full px-4 py-2 text-xs font-semibold">Edit preferences</button>
         </div>
       </header>
 

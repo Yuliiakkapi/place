@@ -209,6 +209,16 @@ export const places: Place[] = [
   },
 ]
 
+export const secretTriggers = ['autumn', 'fall', 'leaves', 'hygge', 'efterår', 'efteraar']
+
+export const secretPlace: Place = {
+  id: 'golden-hour-bench', name: 'Golden Hour Bench', category: 'Secret spot', area: 'Riis Skov', lat: 56.1762, lng: 10.2236,
+  interests: ['nature'], vibes: ['calm', 'cozy'], company: ['alone', 'friend'], indoor: false, hidden: true,
+  summary: 'A bench on the forest slope where the beech leaves turn gold first. You found it by looking for autumn.',
+  whyGo: ['The first trees in the city to turn golden', 'A view of the bay through the branches', 'Best around sunset in October'],
+  image: photo('riis-skov'), visibility: 'public', secret: true,
+}
+
 export const seedTips: Tip[] = [
   { id: 't1', placeId: 'riis-skov', text: 'Take the stairs down to the water and walk back along the shore.', createdAt: '2026-10-12' },
   { id: 't2', placeId: 'riis-skov', text: 'Bring a thermos. There is a bench near the bottom with a view of the bay.', authorId: 'marta', createdAt: '2026-10-18' },

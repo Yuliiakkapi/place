@@ -34,7 +34,7 @@ export function PlaceDetail() {
 
   const isSaved = saved.includes(place.id)
   const tips = [...myTips.filter(t => t.placeId === place.id).reverse(), ...seedTips.filter(t => t.placeId === place.id)]
-  const credit = photoCredit(place.id)
+  const credit = photoCredit(place.image?.match(/\/places\/(.+)\.jpg$/)?.[1] ?? place.id)
   const friends = users.filter(u => u.isFriend)
   const inviteKey = (userId: string) => `${place.id}:${userId}`
   const { color, tint, icon: CategoryIcon } = placeStyle(place)
@@ -57,7 +57,7 @@ export function PlaceDetail() {
             onClick={() => savedStore.set(toggleIn(saved, place.id))}
             aria-pressed={isSaved}
             aria-label={isSaved ? 'Remove from saved' : 'Save place'}
-            className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium float-shadow backdrop-blur ${isSaved ? 'bg-ink text-white' : 'bg-card/90'}`}
+            className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium ${isSaved ? 'glass-dark text-white' : 'glass'}`}
           >
             <Bookmark size={16} fill={isSaved ? 'currentColor' : 'none'} /> {isSaved ? 'Saved' : 'Save'}
           </button>
@@ -108,7 +108,7 @@ export function PlaceDetail() {
             <ul className="mt-3 space-y-3">
               {place.whyGo.map(w => (
                 <li key={w} className="flex items-start gap-3 text-base leading-6">
-                  <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-mint text-[#3f6b4a]"><Check size={12} strokeWidth={3} /></span>
+                  <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-honey text-[#8a5f14]"><Check size={12} strokeWidth={3} /></span>
                   {w}
                 </li>
               ))}
@@ -146,7 +146,7 @@ export function PlaceDetail() {
             />
             <div className="mt-2 flex items-center justify-between gap-3">
               <label className="flex items-center gap-2 text-sm text-muted">
-                <input type="checkbox" checked={anonymous} onChange={e => setAnonymous(e.target.checked)} className="h-4 w-4 accent-[#1f2d25]" />
+                <input type="checkbox" checked={anonymous} onChange={e => setAnonymous(e.target.checked)} className="h-4 w-4 accent-[#3d2a20]" />
                 Post anonymously
               </label>
               <button onClick={postTip} disabled={!tip.trim()} className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:opacity-25">Post</button>
@@ -171,7 +171,7 @@ export function PlaceDetail() {
                 <span className="flex-1 font-medium">{f.name}</span>
                 <button
                   onClick={() => invitedStore.set(toggleIn(invited, inviteKey(f.id)))}
-                  className={`flex items-center gap-1 rounded-full px-4 py-2 text-xs font-semibold ${done ? 'bg-mint text-[#3f6b4a]' : 'bg-ink text-white'}`}
+                  className={`flex items-center gap-1 rounded-full px-4 py-2 text-xs font-semibold ${done ? 'bg-honey text-[#8a5f14]' : 'bg-ink text-white'}`}
                 >
                   {done ? <><Check size={13} /> Invited</> : 'Invite'}
                 </button>

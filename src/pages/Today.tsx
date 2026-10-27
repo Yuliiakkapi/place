@@ -1,13 +1,13 @@
-import { ArrowRight, ChevronRight, Coffee, Compass, Leaf, Moon, Plus, Users, Wind, type LucideIcon } from 'lucide-react'
+import { ArrowRight, Bookmark, ChevronRight, Coffee, Compass, Gem, Leaf, Moon, Plus, Users, Wind, type LucideIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AutumnLeaves } from '../components/AutumnLeaves'
 import { Avatar, AvatarStack, OptionButton, PhotoCard, Pill, PlaceImage, SectionTitle, SeeAll, Sheet } from '../components/ui'
 import { users, vibeLabel, vibes } from '../data/seed'
 import { recommend, useVisiblePlaces } from '../services/recommendationService'
-import { moodStore, profileStore, savedStore, todayKey } from '../services/store'
+import { moodStore, profileStore, savedStore, todayKey, toggleIn } from '../services/store'
 import type { Vibe } from '../types'
 import { usePageTitle } from '../components/usePageTitle'
+import { AutumnLeaves } from '../components/AutumnLeaves'
 
 const vibeIcons: Record<Vibe, LucideIcon> = { calm: Moon, outdoors: Wind, company: Users, new: Compass, cozy: Coffee }
 
@@ -27,7 +27,7 @@ export function Today() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const VibeIcon = vibe ? vibeIcons[vibe] : Leaf
 
-  const picks = useMemo(() => recommend(places, profile, vibe, saved), [places, profile, vibe, saved])
+  const picks = useMemo(() => recommend(places, profile, vibe), [places, profile, vibe])
   const [top, ...rest] = picks
   const friendShares = places.filter(p => p.addedBy && users.find(u => u.id === p.addedBy)?.isFriend)
   const friendNames = [...new Set(friendShares.map(p => users.find(u => u.id === p.addedBy)!.name))]
@@ -39,8 +39,8 @@ export function Today() {
 
   return (
     <div className="pb-4">
-      <header className="relative -mx-5 overflow-hidden bg-gradient-to-b from-[#f6e1d0] via-[#f5eadf] to-paper px-5 pb-4 pt-12">
-        <AutumnLeaves count={6} />
+      <header className="relative -mx-5 overflow-hidden bg-gradient-to-b from-card via-[#fdfbf7] to-paper px-5 pb-4 pt-12">
+        <AutumnLeaves count={9} pace={0.45} />
         <div className="relative flex items-start justify-between gap-4">
           <div>
             <p className="text-sm text-muted">{greeting()}{profile?.name ? `, ${profile.name}` : ''}</p>
@@ -53,7 +53,7 @@ export function Today() {
 
         <button
           onClick={() => setSheetOpen(true)}
-          className="card-shadow relative mt-6 flex w-full items-center gap-3 rounded-full bg-card p-2 pr-3 text-left active:scale-[.98]"
+          className="glass relative mt-6 flex w-full items-center gap-3 rounded-full p-2 pr-3 text-left active:scale-[.98]"
         >
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-peach text-accent-ink">
             <VibeIcon size={18} />
@@ -74,29 +74,37 @@ export function Today() {
 
       {top && (
         <section className="mt-5">
-          <button
-            onClick={() => nav(`/place/${top.place.id}`)}
-            className="card-shadow w-full rounded-lg bg-card p-5 text-left active:scale-[.98]"
-          >
-            <div className="flex gap-4">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium uppercase tracking-[.12em] text-faint">Picked for you</p>
-                <h2 className="display mt-2 text-2xl">{top.place.name}</h2>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Pill tone="dark">{top.place.category}</Pill>
-                  {top.place.hidden && <Pill tone="gem">Hidden gem</Pill>}
+          <article className="relative transition-[scale] duration-200 ease-out has-[.card-link:active]:scale-[.98]">
+            <div className="relative h-64 overflow-hidden rounded-lg">
+              <PlaceImage place={top.place} className="absolute inset-0 h-full w-full" />
+              <span className="absolute inset-0 bg-gradient-to-b from-[#3d2a20]/25 via-transparent to-[#3d2a20]/35" />
+              <span className="absolute left-4 top-4"><Pill tone="solid"><Leaf size={12} /> Picked for you</Pill></span>
+            </div>
+
+            <div className="card-shadow relative mx-3 -mt-16 rounded-md bg-card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="display text-2xl">{top.place.name}</h2>
+                  <p className="mt-1 truncate text-sm text-muted">{top.place.category} · {top.place.area}</p>
                 </div>
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-card"><ArrowRight size={18} /></span>
               </div>
-              <PlaceImage place={top.place} className="h-[120px] w-[104px] shrink-0 rotate-3 rounded-md border-4 border-card float-shadow" />
+              <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted">{top.place.summary}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {top.reasons.map(r => r === 'Hidden gem' ? <Pill key={r} tone="gem"><Gem size={12} /> {r}</Pill> : <Pill key={r} tone="honey">{r}</Pill>)}
+              </div>
             </div>
-            <p className="mt-4 text-sm leading-6 text-muted">{top.place.summary}</p>
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="min-w-0 truncate text-xs text-muted">
-                <span className="font-semibold text-ink">Why: </span>{top.reasons.join(' · ') || top.place.area}
-              </p>
-              <span className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white">View <ArrowRight size={15} /></span>
-            </div>
-          </button>
+
+            <button onClick={() => nav(`/place/${top.place.id}`)} aria-label={`View ${top.place.name}`} className="card-link absolute inset-0 z-10 rounded-lg" />
+            <button
+              onClick={() => savedStore.set(toggleIn(saved, top.place.id))}
+              aria-pressed={saved.includes(top.place.id)}
+              aria-label={saved.includes(top.place.id) ? `Remove ${top.place.name} from saved` : `Save ${top.place.name}`}
+              className={`card-shadow absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full ${saved.includes(top.place.id) ? 'bg-ink text-card' : 'bg-card text-ink'}`}
+            >
+              <Bookmark size={17} fill={saved.includes(top.place.id) ? 'currentColor' : 'none'} />
+            </button>
+          </article>
         </section>
       )}
 

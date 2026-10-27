@@ -53,6 +53,7 @@ export const contributionsStore = createSlot<Place[]>('place.contributions.v3', 
 export const tipsStore = createSlot<Tip[]>('place.tips.v3', [])
 export const settingsStore = createSlot<Settings>('place.settings.v3', defaultSettings)
 export const invitedStore = createSlot<string[]>('place.invited.v3', [])
+export const secretStore = createSlot<boolean>('place.secret.v1', false)
 
 export function todayKey() {
   return new Date().toISOString().slice(0, 10)

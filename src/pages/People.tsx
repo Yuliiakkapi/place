@@ -72,7 +72,7 @@ function Friends() {
               </div>
               <button
                 onClick={() => invitedStore.set(toggleIn(invited, planKey(f.id)))}
-                className={`flex shrink-0 items-center gap-1 rounded-full px-4 py-2 text-xs font-semibold ${done ? 'bg-mint text-[#3f6b4a]' : 'bg-ink text-white'}`}
+                className={`flex shrink-0 items-center gap-1 rounded-full px-4 py-2 text-xs font-semibold ${done ? 'bg-honey text-[#8a5f14]' : 'bg-ink text-white'}`}
               >
                 {done ? <><Check size={13} /> Invited</> : 'Invite out'}
               </button>

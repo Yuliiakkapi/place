@@ -11,7 +11,7 @@ export function BackButton({ floating }: { floating?: boolean }) {
     <button
       onClick={() => nav(-1)}
       aria-label="Back"
-      className={`flex h-10 w-10 items-center justify-center rounded-full ${floating ? 'bg-card/90 float-shadow backdrop-blur' : 'bg-card card-shadow'}`}
+      className={`flex h-10 w-10 items-center justify-center rounded-full ${floating ? 'glass' : 'bg-card card-shadow'}`}
     >
       <ArrowLeft size={19} />
     </button>
@@ -60,7 +60,7 @@ export function Chip({ selected, onClick, children }: { selected: boolean; onCli
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ${selected ? 'bg-ink text-white float-shadow' : 'card-shadow bg-card'}`}
+      className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ${selected ? 'bg-ink text-white' : 'glass-flat'}`}
     >
       {children}
     </button>
@@ -107,23 +107,24 @@ export function AvatarStack({ names, size = 30 }: { names: string[]; size?: numb
   )
 }
 
-export function Pill({ children, tone = 'light' }: { children: ReactNode; tone?: 'light' | 'dark' | 'gem' | 'glass' }) {
+export function Pill({ children, tone = 'light' }: { children: ReactNode; tone?: 'light' | 'dark' | 'gem' | 'solid' | 'honey' }) {
   const tones = {
     light: 'bg-black/[.05] text-ink',
     dark: 'bg-ink text-white',
     gem: 'bg-peach text-accent-ink',
-    glass: 'bg-card/90 text-ink backdrop-blur',
+    solid: 'bg-card text-ink',
+    honey: 'bg-honey text-[#8a5f14]',
   }
   return <span className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium ${tones[tone]}`}>{children}</span>
 }
 
-export function PlaceBadges({ place, glass }: { place: Place; glass?: boolean }) {
+export function PlaceBadges({ place }: { place: Place }) {
   const contributor = place.addedBy === 'me' ? 'you' : userById(place.addedBy)?.name
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {place.hidden && <Pill tone={glass ? 'glass' : 'gem'}><Gem size={12} /> Hidden gem</Pill>}
-      {contributor && <Pill tone={glass ? 'glass' : 'light'}>Shared by {contributor}</Pill>}
-      {place.visibility === 'friends' && <Pill tone={glass ? 'glass' : 'light'}><Lock size={11} /> Friends only</Pill>}
+      {place.hidden && <Pill tone="gem"><Gem size={12} /> Hidden gem</Pill>}
+      {contributor && <Pill>Shared by {contributor}</Pill>}
+      {place.visibility === 'friends' && <Pill><Lock size={11} /> Friends only</Pill>}
     </div>
   )
 }
@@ -169,7 +170,7 @@ export function PhotoCard({ place, onClick, tags, width = 'w-64' }: { place: Pla
       <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
       <span className="absolute inset-x-4 bottom-4 text-white">
         {tags && tags.length > 0 && (
-          <span className="mb-2 flex gap-2">{tags.map(t => <Pill key={t} tone="glass">{t}</Pill>)}</span>
+          <span className="mb-2 flex gap-2">{tags.map(t => t === 'Hidden gem' ? <Pill key={t} tone="gem"><Gem size={12} /> {t}</Pill> : <Pill key={t} tone="solid">{t}</Pill>)}</span>
         )}
         <span className="display block text-xl leading-tight">{place.name}</span>
         <span className="mt-1 block text-xs text-white/80">{place.category} · {place.area}</span>
@@ -223,7 +224,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
         aria-label={title}
         data-state={state}
         onClick={e => e.stopPropagation()}
-        className="sheet-panel w-full max-w-md rounded-t-lg bg-paper px-5 pb-[max(24px,env(safe-area-inset-bottom))] pt-3"
+        className="sheet-panel glass-sheet w-full max-w-md rounded-t-lg px-5 pb-[max(24px,env(safe-area-inset-bottom))] pt-3"
       >
         <div className="mx-auto h-1 w-10 rounded-full bg-ink/15" />
         <div className="mt-4 flex items-start justify-between gap-4">

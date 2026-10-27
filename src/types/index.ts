@@ -21,6 +21,7 @@ export interface Place {
   image?: string
   addedBy?: string
   visibility: Visibility
+  secret?: boolean
 }
 
 export interface Tip {

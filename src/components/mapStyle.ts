@@ -51,7 +51,7 @@ function restyle(style: StyleSpecification): StyleSpecification {
     if (layer.type === 'symbol') {
       const isPlace = layer.id.startsWith('label_')
       const isWater = layer.id.startsWith('water')
-      paint['text-color'] = isWater ? '#5f7894' : isPlace ? '#1f2d25' : '#8c8677'
+      paint['text-color'] = isWater ? '#5f7894' : isPlace ? '#3d2a20' : '#8c8677'
       paint['text-halo-color'] = '#f6f1e8'
       paint['text-halo-width'] = 1.4
     }

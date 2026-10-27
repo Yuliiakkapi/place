@@ -1,4 +1,4 @@
-import { BookOpen, Coffee, Landmark, Palette, Trees, Waves, type LucideIcon } from 'lucide-react'
+import { BookOpen, Coffee, Landmark, Leaf, Palette, Trees, Waves, type LucideIcon } from 'lucide-react'
 import type { Interest, Place } from '../types'
 
 export const categoryStyle: Record<Interest, { color: string; tint: string; icon: LucideIcon }> = {
@@ -7,7 +7,9 @@ export const categoryStyle: Record<Interest, { color: string; tint: string; icon
   water: { color: '#6f8fb3', tint: '#e2e9f1', icon: Waves },
   creative: { color: '#e07a45', tint: '#f8e4d5', icon: Palette },
   culture: { color: '#a95c45', tint: '#f2e0d8', icon: Landmark },
-  study: { color: '#46706c', tint: '#dde8e5', icon: BookOpen },
+  study: { color: '#7a5468', tint: '#f0e3ea', icon: BookOpen },
 }
 
-export const placeStyle = (place: Place) => categoryStyle[place.interests[0] ?? 'nature']
+const secretStyle = { color: '#d39a2c', tint: '#f6e7c4', icon: Leaf }
+
+export const placeStyle = (place: Place) => (place.secret ? secretStyle : categoryStyle[place.interests[0] ?? 'nature'])

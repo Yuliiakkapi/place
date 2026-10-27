@@ -41,7 +41,7 @@ export function SettingsPage() {
                   type="checkbox"
                   checked={settings.locationFriends.includes(f.id)}
                   onChange={() => update({ locationFriends: toggleIn(settings.locationFriends, f.id) })}
-                  className="h-5 w-5 accent-[#1f2d25]"
+                  className="h-5 w-5 accent-[#3d2a20]"
                 />
               </label>
             ))}
@@ -66,7 +66,7 @@ export function SettingsPage() {
             <span className="block text-base font-medium">Post tips anonymously</span>
             <span className="mt-1 block text-xs text-muted">Your name won’t appear next to tips. You can change it on each tip.</span>
           </span>
-          <input type="checkbox" checked={settings.anonymousTips} onChange={e => update({ anonymousTips: e.target.checked })} className="h-5 w-5 shrink-0 accent-[#1f2d25]" />
+          <input type="checkbox" checked={settings.anonymousTips} onChange={e => update({ anonymousTips: e.target.checked })} className="h-5 w-5 shrink-0 accent-[#3d2a20]" />
         </label>
       </section>
 

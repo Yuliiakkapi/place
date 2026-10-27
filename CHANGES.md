@@ -41,9 +41,8 @@ Each change below is linked to the feedback that led to it.
 - All photos are real pictures of each place from Wikimedia Commons, with credit shown under the photo (`src/data/photoCredits.json`).
 
 ## Visual redesign
-- New look based on reference app designs: Inter throughout (tight semibold headings), a warm cream background, deep forest-green buttons, and soft peach and sand autumn gradients. Orange is used only as a small accent.
-- Gently falling leaves on the welcome screen, Explore and Profile (`src/components/AutumnLeaves.tsx`). They are turned off when the device asks for reduced motion.
-- Each kind of place has its own muted autumn colour and icon (cafés, nature, water, creative, culture, read/work). These are used on map pins, chips and onboarding.
+- New look based on reference app designs: Open Runde throughout (self-hosted via `@fontsource/open-runde`, tight semibold headings), a warm off-white background, espresso-brown text and buttons, and soft peach and sand autumn gradients. Orange is used only as a small accent.
+- Each kind of place has its own muted autumn colour and icon: honey for cafés, sage for nature, dusty blue for water, terracotta for creative, rust for culture and plum for read/work. These are used on map pins, chips and onboarding.
 - The bottom navigation is now a floating pill. The active tab is black, and every tab keeps its label.
 - Explore: your vibe is a single pill that opens a bottom sheet, followed by a "Picked for you" card with a tilted photo, swipeable photo cards and a "Your people shared" row.
 - Map: brighter map colours, search, filter chips with icons, and pins coloured by category with a contributor badge. A swipeable card carousel stays in sync with the map, and the selected place shows as a photo pin.
@@ -67,7 +66,32 @@ Each change below is linked to the feedback that led to it.
 - The bottom sheet slides in over 350ms on a drawer curve and slides out over 200ms. Pressing Escape closes it instantly, without animation.
 - The selected map pin grows out of its anchor point instead of swapping in. The map camera moves faster (450–600ms).
 - People lists appear with a 40ms stagger. Page entrances are 250ms.
-- With reduced motion turned on, fades remain and all movement (slides, press scale, falling leaves) is removed.
+- With reduced motion turned on, fades remain and all movement (slides, press scale) is removed.
+
+## Glass materials
+- The bottom nav matches the app's content width (max 448px with 20px side margins) and has four equal-width tabs. The glass lens measures its tab and re-measures when the screen resizes.
+- Four reusable materials in `index.css`:
+  - `glass`: small floating controls.
+  - `glass-thick`: the nav and map cards. Larger surfaces get more blur and depth.
+  - `glass-sheet`: the bottom sheet. It is denser so text stays readable over the dimmed background.
+  - `glass-dark`: selected and primary controls.
+- Glass is used only for floating controls over content:
+  - Map: search, filter chips, Add button and the card carousel.
+  - Place page: the Back and Save buttons over the photo.
+  - The bottom sheet, the Explore vibe pill, and the Profile header buttons.
+  - Tags on photos stay solid (peach for "Hidden gem", cream for others) so they read cleanly over images.
+- Everything on the map now uses the same 20px edge as the rest of the app.
+- All glass becomes solid when the device asks for reduced transparency or increased contrast. With reduced motion, the nav lens moves without sliding.
+
+## Autumn background and easter egg
+- Explore, Profile and the welcome screen use a soft near-white wash instead of the peach and sand gradients.
+- Falling leaves are back on those screens: maple, oak, birch and willow shapes that sway and tumble in 3D. They fade out toward the bottom of each header and are hidden when reduced motion is on.
+- **Easter egg:**
+  - Type an autumn word into the map search ("autumn", "fall", "leaves", "hygge" or the Danish "efterår") to find a secret spot, the Golden Hour Bench in Riis Skov.
+  - The first time, a shower of leaves falls across the screen and a golden leaf pin appears. The spot then stays on your map.
+  - Your profile gets a "Leaf seeker" badge that links to the spot.
+  - The hint is the search placeholder: "Search places or seasons".
+  - Reset demo data clears it.
 
 ## Not built yet
 - B2B or business listings were noted as future work and not included.

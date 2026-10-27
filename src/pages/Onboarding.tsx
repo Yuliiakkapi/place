@@ -1,7 +1,6 @@
 import { ArrowRight, Check, Plus, Send, X } from 'lucide-react'
 import { useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
-import { AutumnLeaves } from '../components/AutumnLeaves'
 import { categoryStyle } from '../components/category'
 import { OptionButton } from '../components/ui'
 import { companyOptions, discoveryOptions, interests, places } from '../data/seed'
@@ -9,6 +8,7 @@ import { shareInvite } from '../services/share'
 import { profileStore, toggleIn } from '../services/store'
 import type { Profile } from '../types'
 import { usePageTitle } from '../components/usePageTitle'
+import { AutumnLeaves } from '../components/AutumnLeaves'
 
 const emptyProfile: Profile = { name: '', interests: [], company: [], discovery: 'mix', favourites: [] }
 
@@ -50,8 +50,8 @@ export function Onboarding() {
   if (step === 0) {
     const photos = ['riis-skov', 'godsbanen', 'tangkrogen', 'varna'].map(id => places.find(p => p.id === id)!)
     return (
-      <section className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#f5dcc8] via-[#f5e9de] to-paper">
-        <AutumnLeaves count={16} />
+      <section className="relative min-h-screen overflow-hidden bg-gradient-to-b from-card via-[#fdfbf7] to-paper">
+        <AutumnLeaves count={18} />
         <div className="relative mx-auto flex min-h-screen max-w-md flex-col px-6 pb-10 pt-12">
           <p className="display text-2xl">PLACE.</p>
           <div className="flex flex-1 flex-col justify-center py-8">

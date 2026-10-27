@@ -1,13 +1,14 @@
-import { Bookmark, ChevronRight, Gem, Plus, Search, UsersRound, X, type LucideIcon } from 'lucide-react'
+import { Bookmark, ChevronRight, Gem, Leaf, Plus, Search, UsersRound, X, type LucideIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Marker, type MapRef } from 'react-map-gl/maplibre'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { categoryStyle } from '../components/category'
+import { AutumnLeaves } from '../components/AutumnLeaves'
 import { Pin, PlaceMap } from '../components/PlaceMap'
 import { Chip, PlaceImage, Pill } from '../components/ui'
-import { interests, userById } from '../data/seed'
+import { interests, secretTriggers, userById } from '../data/seed'
 import { useVisiblePlaces } from '../services/recommendationService'
-import { savedStore } from '../services/store'
+import { savedStore, secretStore } from '../services/store'
 import type { Place } from '../types'
 import { usePageTitle } from '../components/usePageTitle'
 
@@ -37,12 +38,29 @@ export function MapPage() {
   const [filterId, setFilterId] = useState(() => filters.some(f => f.id === params.get('filter')) ? params.get('filter')! : 'all')
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState(0)
+  const [celebrate, setCelebrate] = useState(false)
+  const secretQuery = secretTriggers.includes(query.trim().toLowerCase())
+
+  useEffect(() => {
+    if (!celebrate) return
+    const t = setTimeout(() => setCelebrate(false), 6500)
+    return () => clearTimeout(t)
+  }, [celebrate])
+
+  function onSearch(value: string) {
+    setQuery(value)
+    if (secretTriggers.includes(value.trim().toLowerCase()) && !secretStore.get()) {
+      secretStore.set(true)
+      setCelebrate(true)
+    }
+  }
 
   const filter = filters.find(f => f.id === filterId)!
   const shown = useMemo(() => {
+    if (secretQuery) return places.filter(p => p.secret)
     const q = query.trim().toLowerCase()
     return places.filter(p => filter.test(p, saved) && (!q || `${p.name} ${p.category} ${p.area}`.toLowerCase().includes(q)))
-  }, [places, filter, saved, query])
+  }, [places, filter, saved, query, secretQuery])
   const selected = shown[index] ?? shown[0]
 
   const fitAll = useCallback((list: Place[]) => {
@@ -77,6 +95,20 @@ export function MapPage() {
 
   return (
     <div className="relative -mx-5 -mb-32 h-[100dvh] overflow-hidden bg-[#f1ebe0]">
+      {celebrate && (
+        <div className="pointer-events-none fixed inset-0 z-[1500]">
+          <AutumnLeaves count={36} pace={0.22} burst />
+        </div>
+      )}
+      {celebrate && (
+        <div role="status" className="glass-thick float-in absolute inset-x-5 top-40 z-[700] flex items-center gap-3 rounded-md p-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-honey text-[#8a5f14]"><Leaf size={18} /></span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">You found a secret autumn spot</span>
+            <span className="block text-xs text-muted">The Golden Hour Bench is now on your map.</span>
+          </span>
+        </div>
+      )}
       <PlaceMap ref={mapRef} onLoad={() => setLoaded(true)}>
         {shown.map((p, i) => {
           const isSelected = p.id === selected?.id
@@ -95,24 +127,24 @@ export function MapPage() {
         })}
       </PlaceMap>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] bg-gradient-to-b from-paper/85 via-paper/40 to-transparent px-4 pb-8 pt-12">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] bg-gradient-to-b from-paper/60 via-paper/20 to-transparent px-5 pb-8 pt-12">
         <div className="pointer-events-auto flex items-center gap-2">
-          <label className="card-shadow flex flex-1 items-center gap-2 rounded-full bg-card px-4 py-3">
+          <label className="glass flex flex-1 items-center gap-2 rounded-full px-4 py-3">
             <Search size={18} className="shrink-0 text-muted" />
             <input
               value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Search places"
+              onChange={e => onSearch(e.target.value)}
+              placeholder="Search places or seasons"
               aria-label="Search places"
               className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-faint"
             />
             {query && <button onClick={() => setQuery('')} aria-label="Clear search" className="text-faint"><X size={16} /></button>}
           </label>
-          <button onClick={() => nav('/add-place')} className="flex shrink-0 items-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-white float-shadow">
+          <button onClick={() => nav('/add-place')} className="glass-dark flex shrink-0 items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white">
             <Plus size={17} /> Add
           </button>
         </div>
-        <div className="no-scrollbar pointer-events-auto -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
+        <div className="no-scrollbar pointer-events-auto -mx-5 mt-3 flex gap-2 overflow-x-auto px-5 pb-1">
           {filters.map(f => (
             <Chip key={f.id} selected={filterId === f.id} onClick={() => setFilterId(f.id)}>
               {f.icon && <f.icon size={14} />} {f.label}
@@ -123,22 +155,22 @@ export function MapPage() {
 
       <div className="absolute inset-x-0 bottom-[96px] z-[600]">
         {shown.length === 0 ? (
-          <div className="card-shadow mx-4 rounded-md bg-card p-5 text-center text-sm text-muted">
+          <div className="glass-thick mx-5 rounded-md p-5 text-center text-sm text-muted">
             {filterId === 'saved' && !query ? 'No saved places yet. Tap the bookmark on any place to save it.' : 'No places match. Try another filter or search.'}
           </div>
         ) : (
           <div
             ref={railRef}
             onScroll={onRailScroll}
-            className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto px-4 pb-2"
-            style={{ gap: GAP, scrollPaddingLeft: 16 }}
+            className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto px-5 pb-2"
+            style={{ gap: GAP, scrollPaddingLeft: 20 }}
           >
             {shown.map((p, i) => (
               <button
                 key={p.id}
                 onClick={() => (i === index ? nav(`/place/${p.id}`) : focusPin(i))}
                 style={{ width: CARD }}
-                className={`card-shadow flex shrink-0 snap-start gap-4 rounded-md bg-card p-2 text-left ${i === index ? '' : 'opacity-80'}`}
+                className={`glass-flat flex shrink-0 snap-start gap-4 rounded-md p-2 text-left ${i === index ? '' : 'opacity-80'}`}
               >
                 <PlaceImage place={p} className="h-24 w-24 shrink-0 rounded-sm" />
                 <span className="flex min-w-0 flex-1 flex-col justify-between py-1 pr-2">
@@ -155,7 +187,7 @@ export function MapPage() {
                 </span>
               </button>
             ))}
-            <span aria-hidden style={{ flex: `0 0 calc(100% - ${CARD + GAP + 16}px)` }} />
+            <span aria-hidden style={{ flex: `0 0 calc(100% - ${CARD + GAP + 20}px)` }} />
           </div>
         )}
       </div>
