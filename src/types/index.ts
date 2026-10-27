@@ -1,12 +1,59 @@
-export type Mood = 'cozy' | 'quiet' | 'lowEnergy' | 'needAir' | 'wantCompany' | 'wantToDisappear' | 'curious' | 'explore'
-export type Need = 'alone' | 'people' | 'move' | 'slow' | 'explore' | 'talk'
-export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
-export type Weather = 'rain' | 'sunny' | 'cold' | 'cloudy'
+export type Vibe = 'calm' | 'outdoors' | 'company' | 'new' | 'cozy'
+export type Interest = 'cafes' | 'nature' | 'water' | 'creative' | 'culture' | 'study'
+export type Company = 'alone' | 'friend' | 'group'
+export type Discovery = 'hidden' | 'mix' | 'popular'
+export type Visibility = 'public' | 'friends'
 
-export interface MoodProfile { energy: number; social: number; environment: string; activity: string }
-export interface Place { id:string; name:string; category:string; city:string; lat:number; lng:number; seasons:Season[]; moods:Mood[]; situations:string[]; description:string; image:string; autumn:string[]; traces:string[] }
-export interface Activity { id:string; title:string; description:string; duration:number; environment:string; socialType:string; moods:Mood[] }
-export interface User { id:string; name:string; avatar:string; city:string; friends:string[]; currentMoods:Mood[]; needs:Need[] }
-export interface MoodCheckIn { id:string; userId:string; date:string; moods:Mood[]; needs:Need[] }
-export interface SocialPlan { id:string; creatorId:string; placeId:string; activity:string; date:string; participants:string[] }
-export interface JournalEntry { id:string; date:string; mood:string; placeId:string; activity:string; person?:string }
+export interface Place {
+  id: string
+  name: string
+  category: string
+  area: string
+  lat: number
+  lng: number
+  interests: Interest[]
+  vibes: Vibe[]
+  company: Company[]
+  indoor: boolean
+  hidden: boolean
+  summary: string
+  whyGo: string[]
+  image?: string
+  addedBy?: string
+  visibility: Visibility
+}
+
+export interface Tip {
+  id: string
+  placeId: string
+  text: string
+  authorId?: string
+  createdAt: string
+}
+
+export interface User {
+  id: string
+  name: string
+  isFriend: boolean
+  vibe?: Vibe
+}
+
+export interface Profile {
+  name: string
+  interests: Interest[]
+  company: Company[]
+  discovery: Discovery
+  favourites: string[]
+}
+
+export interface Settings {
+  locationSharing: 'off' | 'selected'
+  locationFriends: string[]
+  moodVisibleTo: 'friends' | 'nobody'
+  anonymousTips: boolean
+}
+
+export interface TodayMood {
+  vibe: Vibe
+  date: string
+}

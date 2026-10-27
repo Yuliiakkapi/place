@@ -1,27 +1,104 @@
-import { ArrowRight, Bookmark, ChevronRight, CloudRain, Leaf, MapPin, Users } from 'lucide-react'
+import { ArrowRight, ChevronRight, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getRecommendation } from '../services/recommendationService'
-import type { Mood, Need } from '../types'
+import { OptionButton, PlaceBadges, PlaceImage, PlaceRow, SectionTitle, TextLink } from '../components/ui'
+import { vibeLabel, vibes } from '../data/seed'
+import { recommend, useVisiblePlaces } from '../services/recommendationService'
+import { moodStore, profileStore, savedStore, todayKey } from '../services/store'
+import type { Vibe } from '../types'
 
-const moods: [Mood, string, string][] = [['cozy', 'Cozy', '☕'], ['quiet', 'Quiet', '🌫'], ['lowEnergy', 'Low energy', '🌙'], ['needAir', 'Need air', '🍃'], ['wantCompany', 'Want company', '🫶'], ['wantToDisappear', 'Want to disappear', '🌧'], ['curious', 'Curious', '✦'], ['explore', 'Want to explore', '🍂']]
-const needs: [Need, string][] = [['alone', 'Be alone'], ['people', 'Be around people'], ['move', 'Move'], ['slow', 'Slow down'], ['explore', 'Explore'], ['talk', 'Talk']]
-const checkInKey = 'place-today-check-in-v1'
-
-function loadCheckIn(): { moods: Mood[]; needs: Need[] } | null { try { return JSON.parse(localStorage.getItem(checkInKey) || 'null') } catch { return null } }
+function greeting() {
+  const h = new Date().getHours()
+  return h < 5 ? 'Good evening' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
+}
 
 export function Today() {
-  const saved = loadCheckIn()
-  const [selectedMoods, setSelectedMoods] = useState<Mood[]>(saved?.moods?.length ? saved.moods : [])
-  const [selectedNeeds, setSelectedNeeds] = useState<Need[]>(saved?.needs?.length ? saved.needs : [])
-  const [checkInOpen, setCheckInOpen] = useState(!saved)
-  const [step, setStep] = useState<1 | 2>(1)
   const nav = useNavigate()
-  const result = useMemo(() => getRecommendation(selectedMoods, selectedNeeds, 'cloudy'), [selectedMoods, selectedNeeds])
-  const place = result.places[0]
-  const toggleMood = (id: Mood) => setSelectedMoods(current => current.includes(id) ? current.filter(mood => mood !== id) : current.length < 3 ? [...current, id] : current)
-  const toggleNeed = (id: Need) => setSelectedNeeds(current => current.includes(id) ? current.filter(need => need !== id) : [...current, id])
-  function finishCheckIn() { localStorage.setItem(checkInKey, JSON.stringify({ moods: selectedMoods, needs: selectedNeeds })); setCheckInOpen(false) }
+  const profile = profileStore.use()
+  const storedMood = moodStore.use()
+  const saved = savedStore.use()
+  const places = useVisiblePlaces()
+  const vibe = storedMood?.date === todayKey() ? storedMood.vibe : null
+  const [picking, setPicking] = useState(false)
 
-  return <div className="grain min-h-screen pt-9"><header className="flex items-start justify-between"><div><p className="text-sm text-[#8b847b]">Good afternoon, Yulia</p><h1 className="mt-1 text-3xl font-light tracking-[-.03em]">How does today feel?</h1></div><div className="rounded-full bg-[#ead9cb] p-3 text-[#9d5638]"><Leaf size={18}/></div></header><section className="mt-7"><div className="flex gap-2 overflow-x-auto pb-2">{moods.map(([id, label, emoji]) => <button key={id} onClick={() => toggleMood(id)} className={`shrink-0 rounded-full border px-4 py-2.5 text-sm ${selectedMoods.includes(id) ? 'border-[#b96e4d] bg-[#e8d5c7]' : 'border-black/10 bg-white/35'}`}>{emoji} {label}</button>)}</div></section><section className="mt-6"><p className="mb-3 text-xs uppercase tracking-[.18em] text-[#8d8277]">What do you need today?</p><div className="grid grid-cols-2 gap-2">{needs.map(([id, label]) => <button key={id} onClick={() => toggleNeed(id)} className={`rounded-xl border px-3 py-3 text-left text-sm ${selectedNeeds.includes(id) ? 'border-[#b96e4d] bg-[#ead9cb]' : 'border-black/10 bg-white/30'}`}>{label}</button>)}</div></section><section className="mt-8 rounded-[28px] bg-[#d8ded5] p-6"><div className="flex items-center gap-2 text-sm text-[#596157]"><CloudRain size={17}/> Mood weather</div><h2 className="mt-4 text-2xl font-light">{selectedMoods.map(mood => moods.find(item => item[0] === mood)?.[1]).join(' + ') || 'Finding your rhythm'}</h2><p className="mt-2 max-w-xs text-sm leading-6 text-[#62675e]">You don’t need to fix it. Here’s something that might fit.</p></section><section className="mt-6"><div className="flex items-center justify-between"><p className="text-xs uppercase tracking-[.18em] text-[#8d8277]">Today’s place</p><button onClick={() => nav('/map')} className="text-xs text-[#9d5638]">See map</button></div><button onClick={() => nav(`/place/${place.id}`)} className="mt-3 w-full overflow-hidden rounded-[28px] bg-white text-left shadow-[0_12px_40px_rgba(55,44,32,.07)]"><img src={place.image} className="h-44 w-full object-cover"/><div className="p-5"><div className="flex items-center gap-2 text-xs text-[#8d8277]"><MapPin size={13}/>{place.name} · Aarhus</div><h3 className="mt-2 text-2xl font-light">{result.activity.title}</h3><p className="mt-2 text-sm leading-6 text-[#686259]">{result.activity.description}</p></div></button><div className="mt-3 grid grid-cols-3 gap-2"><button className="rounded-full bg-[#292722] py-3 text-sm text-white">Go alone</button><button className="flex items-center justify-center gap-1 rounded-full border border-black/10 bg-white/40 py-3 text-sm"><Users size={15}/> Find someone</button><button className="flex items-center justify-center gap-1 rounded-full border border-black/10 bg-white/40 py-3 text-sm"><Bookmark size={15}/> Save</button></div></section><section className="mt-10 pb-4"><div className="flex items-center justify-between"><p className="text-xs uppercase tracking-[.18em] text-[#8d8277]">A few more fits</p><ChevronRight size={17}/></div><div className="mt-3 flex gap-3 overflow-x-auto pb-3">{result.places.slice(1).map(item => <button onClick={() => nav(`/place/${item.id}`)} key={item.id} className="min-w-48 rounded-2xl bg-white/60 p-3 text-left"><img src={item.image} className="h-24 w-full rounded-xl object-cover"/><p className="mt-3 text-sm font-medium">{item.name}</p></button>)}</div></section>{checkInOpen && <div className="fixed inset-0 z-[100] flex items-end bg-[#292722]/40 p-4 sm:items-center sm:justify-center"><section role="dialog" aria-modal="true" aria-labelledby="check-in-title" className="w-full max-w-md rounded-[30px] bg-[#f7f2ea] p-6 shadow-2xl"><p className="text-xs uppercase tracking-[.18em] text-[#9d5638]">Daily check-in · {step}/2</p>{step === 1 ? <><h2 id="check-in-title" className="mt-4 text-3xl font-light">How does today feel?</h2><p className="mt-2 text-sm leading-6 text-[#716a61]">Choose up to three feelings.</p><div className="mt-6 grid grid-cols-2 gap-2">{moods.map(([id, label, emoji]) => <button key={id} onClick={() => toggleMood(id)} className={`rounded-2xl border px-4 py-4 text-left text-sm ${selectedMoods.includes(id) ? 'border-[#b96e4d] bg-[#ead9cb]' : 'border-black/10 bg-white/50'}`}>{emoji} {label}</button>)}</div><button disabled={!selectedMoods.length} onClick={() => setStep(2)} className="mt-6 flex w-full items-center justify-between rounded-full bg-[#292722] px-5 py-4 text-sm text-white disabled:opacity-30">Continue <ArrowRight size={17}/></button></> : <><h2 id="check-in-title" className="mt-4 text-3xl font-light">What do you need today?</h2><p className="mt-2 text-sm leading-6 text-[#716a61]">Pick one or more things that would help.</p><div className="mt-6 grid grid-cols-2 gap-2">{needs.map(([id, label]) => <button key={id} onClick={() => toggleNeed(id)} className={`rounded-2xl border px-4 py-4 text-left text-sm ${selectedNeeds.includes(id) ? 'border-[#b96e4d] bg-[#ead9cb]' : 'border-black/10 bg-white/50'}`}>{label}</button>)}</div><div className="mt-6 flex gap-3"><button onClick={() => setStep(1)} className="rounded-full border border-black/10 px-5 py-4 text-sm">Back</button><button disabled={!selectedNeeds.length} onClick={finishCheckIn} className="flex flex-1 items-center justify-between rounded-full bg-[#292722] px-5 py-4 text-sm text-white disabled:opacity-30">Find my place <ArrowRight size={17}/></button></div></>}</section></div>}</div>
+  const picks = useMemo(() => recommend(places, profile, vibe, saved), [places, profile, vibe, saved])
+  const [top, ...rest] = picks
+
+  function chooseVibe(id: Vibe) {
+    if (id === vibe) moodStore.set(null)
+    else moodStore.set({ vibe: id, date: todayKey() })
+    setPicking(false)
+  }
+
+  const showPicker = picking || !vibe
+
+  return (
+    <div className="pt-9 pb-4">
+      <header>
+        <p className="text-sm text-muted">{greeting()}{profile?.name ? `, ${profile.name}` : ''}</p>
+        <h1 className="mt-1 text-3xl font-light tracking-[-.02em]">Where to today?</h1>
+      </header>
+
+      <section aria-labelledby="mood-title" className="mt-7">
+        {showPicker ? (
+          <>
+            <div className="flex items-baseline justify-between">
+              <h2 id="mood-title" className="font-medium">What are you in the mood for?</h2>
+              {picking && <TextLink onClick={() => setPicking(false)}>Cancel</TextLink>}
+            </div>
+            <p className="mt-1 text-sm text-muted">Pick one. You can change it anytime.</p>
+            <div className="mt-4 space-y-2">
+              {vibes.map(v => <OptionButton key={v.id} label={v.label} hint={v.hint} selected={vibe === v.id} onClick={() => chooseVibe(v.id)} />)}
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center justify-between border-y border-line py-3.5">
+            <p id="mood-title" className="text-sm text-muted">
+              Today you’re in the mood for <span className="font-medium text-ink">{vibeLabel(vibe!).toLowerCase()}</span>
+            </p>
+            <TextLink onClick={() => setPicking(true)}>Change</TextLink>
+          </div>
+        )}
+      </section>
+
+      {top && (
+        <section className="mt-8">
+          <SectionTitle>Picked for you</SectionTitle>
+          <button
+            onClick={() => nav(`/place/${top.place.id}`)}
+            className="mt-3 w-full overflow-hidden rounded-[24px] border border-line bg-card text-left shadow-[0_10px_30px_rgba(55,44,32,.08)] transition hover:border-ink/30 active:scale-[.99]"
+          >
+            <PlaceImage place={top.place} className="h-48 w-full" />
+            <div className="p-5">
+              <PlaceBadges place={top.place} />
+              <h3 className="mt-2 text-2xl font-light">{top.place.name}</h3>
+              <p className="mt-1 text-sm leading-6 text-muted">{top.place.summary}</p>
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
+                <p className="text-xs text-faint">{top.reasons.join(' · ') || top.place.category}</p>
+                <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-rust">View <ChevronRight size={16} /></span>
+              </div>
+            </div>
+          </button>
+        </section>
+      )}
+
+      <section className="mt-9">
+        <SectionTitle action={<TextLink onClick={() => nav('/map')}>See all on map</TextLink>}>Also worth a visit</SectionTitle>
+        <div className="mt-3 space-y-2">
+          {rest.slice(0, 3).map(r => (
+            <PlaceRow key={r.place.id} place={r.place} detail={r.reasons[0] ? `${r.place.category} · ${r.reasons[0]}` : undefined} onClick={() => nav(`/place/${r.place.id}`)} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-9 rounded-[24px] bg-sand p-5">
+        <h2 className="font-medium">Know a spot most people miss?</h2>
+        <p className="mt-1 text-sm leading-6 text-muted">Add it to the map. You choose whether everyone or only friends can see it.</p>
+        <button onClick={() => nav('/add-place')} className="mt-4 flex w-full items-center justify-between rounded-full bg-ink px-5 py-3.5 text-sm text-white">
+          <span className="flex items-center gap-2"><Plus size={17} /> Share a place</span>
+          <ArrowRight size={17} />
+        </button>
+      </section>
+    </div>
+  )
 }

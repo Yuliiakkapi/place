@@ -1,14 +1,122 @@
-import { ArrowRight, MapPin, Plus, UsersRound } from 'lucide-react'
+import { Check, Globe, Lock, Send } from 'lucide-react'
 import { useState } from 'react'
-import { users } from '../data/seed'
-import type { User } from '../types'
+import { useNavigate } from 'react-router-dom'
+import { Avatar, Eyebrow, Segmented, TextLink } from '../components/ui'
+import { places, users, vibeLabel } from '../data/seed'
+import { shareInvite } from '../services/share'
+import { invitedStore, moodStore, settingsStore, todayKey, toggleIn } from '../services/store'
+
+type Tab = 'friends' | 'community'
 
 export function People() {
-  const me = users[0]
-  const [plan, setPlan] = useState(false)
-  function match(user: User) {
-    return user.currentMoods.filter(mood => me.currentMoods.includes(mood)).length * 3 + user.needs.filter(need => me.needs.includes(need)).length * 2
+  const [tab, setTab] = useState<Tab>('friends')
+  return (
+    <div className="pt-9 pb-4">
+      <Eyebrow>People</Eyebrow>
+      <h1 className="mt-2 text-3xl font-light">Your people</h1>
+      <div className="mt-6">
+        <Segmented<Tab> label="Show" value={tab} onChange={setTab} options={[{ id: 'friends', label: 'Friends' }, { id: 'community', label: 'Community' }]} />
+      </div>
+      {tab === 'friends' ? <Friends /> : <Community />}
+    </div>
+  )
+}
+
+function Friends() {
+  const nav = useNavigate()
+  const mood = moodStore.use()
+  const settings = settingsStore.use()
+  const invited = invitedStore.use()
+  const [inviteStatus, setInviteStatus] = useState('')
+  const myVibe = mood?.date === todayKey() ? mood.vibe : null
+  const friends = users.filter(u => u.isFriend).sort((a, b) => Number(b.vibe === myVibe) - Number(a.vibe === myVibe))
+  const planKey = (id: string) => `today:${id}`
+
+  async function invite() {
+    const result = await shareInvite()
+    setInviteStatus(result === 'copied' ? 'Invite link copied' : result === 'shared' ? 'Invite shared' : 'Could not share the link')
   }
-  const matches = users.filter(user => user.id !== 'me').sort((a, b) => match(b) - match(a))
-  return <div className="pt-9"><p className="text-xs uppercase tracking-[.18em] text-[#9d5638]">Social layer</p><h1 className="mt-2 text-4xl font-light">Same weather</h1><p className="mt-2 max-w-sm text-sm leading-6 text-[#716a61]">People around you feeling something similar. No pressure, no performance.</p><section className="mt-7 space-y-3">{matches.slice(0, 5).map(user => <div key={user.id} className="rounded-[22px] bg-white/60 p-4"><div className="flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#d8ded5] text-sm">{user.avatar}</div><div className="flex-1"><p className="font-medium">{user.name}</p><p className="mt-1 text-xs text-[#716a61]">{user.currentMoods.map(mood => mood === 'needAir' ? 'Needs air' : mood === 'wantCompany' ? 'Wants company' : mood[0].toUpperCase() + mood.slice(1)).join(' · ')}</p></div><button className="rounded-full bg-[#292722] px-4 py-2 text-xs text-white">Invite</button></div><p className="mt-4 flex items-center gap-2 text-xs text-[#8d8277]"><span className="h-1.5 w-1.5 rounded-full bg-[#9d5638]"/> You might like the same kind of afternoon.</p></div>)}</section><section className="mt-8 rounded-[26px] bg-[#ead9cb] p-5"><div className="flex items-center gap-2 text-sm"><MapPin size={17}/> Low-pressure plans</div><h2 className="mt-3 text-2xl font-light">I’m going somewhere</h2><p className="mt-2 text-sm leading-6 text-[#625d55]">Invite people into a plan without turning it into a big commitment.</p><button onClick={() => setPlan(true)} className="mt-5 flex w-full items-center justify-between rounded-full bg-[#292722] px-5 py-3 text-sm text-white">Create a plan <ArrowRight size={17}/></button>{plan && <div className="mt-4 rounded-2xl bg-white/60 p-4"><p className="text-sm font-medium">🍂 Walking through the park</p><p className="mt-1 text-xs text-[#716a61]">Today · 17:30 · 2 spots open</p><button className="mt-3 flex items-center gap-1 text-xs text-[#9d5638]"><Plus size={14}/> Add a place</button></div>}</section><div className="mt-7 flex items-center gap-2 text-xs text-[#8d8277]"><UsersRound size={15}/> Friends appear first when they share your current weather.</div></div>
+
+  return (
+    <section className="float-in mt-5">
+      <p className="flex items-start gap-2 text-sm leading-6 text-muted">
+        <Lock size={15} className="mt-1 shrink-0" />
+        <span>
+          Only friends see each other’s mood.{' '}
+          {settings.moodVisibleTo === 'nobody' ? 'Yours is currently hidden.' : myVibe ? `They see yours: ${vibeLabel(myVibe).toLowerCase()}.` : 'You haven’t set yours today.'}{' '}
+          <TextLink onClick={() => nav('/settings')}>Privacy settings</TextLink>
+        </span>
+      </p>
+
+      <ul className="mt-5 space-y-2">
+        {friends.map(f => {
+          const same = !!myVibe && f.vibe === myVibe
+          const done = invited.includes(planKey(f.id))
+          return (
+            <li key={f.id} className="flex items-center gap-3 rounded-2xl border border-line bg-card p-3.5">
+              <Avatar name={f.name} />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{f.name}</p>
+                <p className="mt-0.5 text-xs text-muted">
+                  {f.vibe ? `In the mood for ${vibeLabel(f.vibe).toLowerCase()}` : 'No mood shared today'}
+                </p>
+                {same && <p className="mt-1 text-xs font-medium text-moss">Same mood as you</p>}
+              </div>
+              <button
+                onClick={() => invitedStore.set(toggleIn(invited, planKey(f.id)))}
+                className={`flex shrink-0 items-center gap-1 rounded-full px-4 py-2 text-xs font-medium ${done ? 'bg-sage text-moss' : 'bg-ink text-white'}`}
+              >
+                {done ? <><Check size={13} /> Invited</> : 'Invite out'}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+      <p className="mt-2 text-[11px] text-faint">Demo only: invitations are not actually sent. To invite someone to a specific place, open the place.</p>
+
+      <button onClick={invite} className="mt-7 flex w-full items-center justify-center gap-2 rounded-full border border-ink px-5 py-3.5 text-sm font-medium">
+        <Send size={16} /> Invite friends to PLACE
+      </button>
+      {inviteStatus && <p role="status" className="mt-2 text-center text-xs text-muted">{inviteStatus}</p>}
+    </section>
+  )
+}
+
+function Community() {
+  const nav = useNavigate()
+  const contributors = users
+    .map(u => ({ user: u, shared: places.filter(p => p.addedBy === u.id && p.visibility === 'public') }))
+    .filter(c => c.shared.length > 0)
+
+  return (
+    <section className="float-in mt-5">
+      <p className="flex items-start gap-2 text-sm leading-6 text-muted">
+        <Globe size={15} className="mt-1 shrink-0" />
+        Here you see places people have shared publicly. Moods, locations and friends-only places stay private.
+      </p>
+
+      <ul className="mt-5 space-y-2">
+        {contributors.map(({ user, shared }) => (
+          <li key={user.id} className="rounded-2xl border border-line bg-card p-3.5">
+            <div className="flex items-center gap-3">
+              <Avatar name={user.name} />
+              <div className="flex-1">
+                <p className="font-medium">{user.name}{user.isFriend && <span className="ml-2 text-xs font-normal text-moss">Friend</span>}</p>
+                <p className="mt-0.5 text-xs text-muted">{shared.length} {shared.length === 1 ? 'place' : 'places'} shared</p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {shared.map(p => (
+                <button key={p.id} onClick={() => nav(`/place/${p.id}`)} className="rounded-full border border-ink/20 px-3 py-1.5 text-sm hover:border-ink">
+                  {p.name} →
+                </button>
+              ))}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <button onClick={() => nav('/add-place')} className="mt-7 w-full rounded-full bg-ink py-3.5 text-sm text-white">Share a place with the community</button>
+    </section>
+  )
 }
